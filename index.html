@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang = "en">
+<head>
+    <meta charset = "UTF-8">
+    <meta name = "viewport" content = "width = device-width, initial-scale = 1.0">
+    <meta http-equiv = "X-UA-Compatible" content = "ie = edge">
+    <title>Solo Pong</title>
+    <link rel = "icon" href = "icon.png">
+</head>
+<style>
+    *{padding: 0;margin: 0;box-sizing: border-box;}
+    body{
+        height: 60vh;
+        background: linear-gradient(to right,rgb(36, 34, 34),rgb(107, 6, 6),rgb(36, 34, 34));
+    }
+    #canvas{
+        position: absolute;
+        left:50%;
+        top:50%;
+        transform: translate(-50%,-50%);
+    }
+    #pontos{
+        position: absolute;
+        left:50%;
+        top:50%;
+        transform: translate(-50%,-50%);
+        width:854px;
+        height: 480px;
+        text-align: center;
+        padding: 12px;
+        background-color: transparent;
+        color: #ccc;
+        font-size: 2.0em;
+        font-family: monospace;
+    }
+    #reiniciar{
+        position: absolute;
+        left:50%;
+        top:52%;
+        transform: translate(-50%,-50%);
+        width:854px;
+        height: 100px;
+        text-align: center;
+        padding: 12px;
+        background-color: transparent;
+        color: #ccc;
+        font-size: 2.0em;
+        font-family: monospace;
+    }
+    .title{
+        font-family: monospace;
+        color: #ccc;
+        text-align: center;
+        margin-top: 5%;
+    }
+    #recorde{
+        font-family: monospace;
+        color: #ccc;
+        text-align: center;
+        margin-top: 40%;
+    }
+</style>
+<body>
+    <h1 class="title">Pong Game - Player Limit Test</h1>
+    <canvas id="canvas" width="900" height="500"></canvas>
+    <div id="pontos">Espaço para começar!</div>
+    <div id="reiniciar"></div>
+    <div id="recorde">Sua maior pontuação foi: 0</div>
+
+    <script>
+    function limpaTela(ctx){
+        ctx.fillStyle  =  limpaCor;
+        ctx.fillRect(0,0,cw,ch);
+    }
+    
+    function desenhaBarrinha(ctx,x,y,w,h,Cor){
+        ctx.fillStyle = Cor;
+        ctx.fillRect(x,y,w,h);
+    }
+
+    function desenhaBola(ctx,x,y,r,Cor){
+        ctx.fillStyle = Cor;
+        ctx.beginPath();
+        ctx.arc(x,y,r,0,2*Math.PI);
+        ctx.fill();
+    }
+
+    function foraLimite(x,y,w,h,rx,ry,rw,rh){
+        if(x<rx || x+w>rw){
+            return "x";
+        }
+        if(y<ry || y+h>rh){
+            return "y";
+        }
+        return false;
+    }
+
+    var Pong = function(){
+    var p = this;
+    this.barrinhaWidth = 10;
+    this.barrinhaHeight = 100;
+    this.bolaRadius = 10;
+    this.bolaSpeed = 2;
+    this.bolaDirX = 1;
+    this.bolaDirY = 1;
+    this.barrinhaSpeed = 4;
+    this.current = true;
+    this.barrinha1 = {
+        x:10,
+        y:ch/2-p.barrinhaHeight/2,
+        w:p.barrinhaWidth,
+        h:p.barrinhaHeight
+    };
+    this.bola = {
+        x:cw/2,
+        y:ch/2,
+        r:p.bolaRadius
+    };
+    this.playerScore = 0;
+    this.playerLifes = 5;
+    this.pause = true;
+
+    this.init = function(){
+    }
+
+    this.desenha = function(ctx){
+        desenhaBarrinha(ctx,p.barrinha1.x,p.barrinha1.y,p.barrinha1.w,p.barrinha1.h,barrinhaCor);
+        desenhaBola(ctx,p.bola.x,p.bola.y,p.bola.r,bolaCor);
+    }
+
+    this.atualiza = function(ctx){
+        p.desenha(ctx);
+        if(p.pause)return;
+        p.atualizaBarrinhaPlayer();
+        p.atualizaMovimentoBola();
+        audio.play();
+    }
+
+    this.atualizaBarrinhaPlayer = function(){
+        if(upKey){
+            p.barrinha1.y+= p.barrinhaSpeed*-1;
+        }
+        if(downKey){
+            p.barrinha1.y+= p.barrinhaSpeed*1;
+        }
+    }
+
+    this.atualizaMovimentoBola = function(){
+        p.bola.x+= p.bolaSpeed*p.bolaDirX;
+        p.bola.y+= p.bolaSpeed*p.bolaDirY;
+        let limit_o = foraLimite(p.bola.x,p.bola.y,p.bola.r,p.bola.r,0,0,cw,ch);
+        if(limit_o){
+            if(limit_o == "x"){
+                p.bolaDirX*= -1;
+                if(p.bolaDirX<0){
+                    p.playerScore++;
+                    p.bolaSpeed+=0.1;
+                    score.currentTime = 0;
+                    score.play();
+                    score.volume = 0.2;
+                }else{
+                    p.playerLifes--;
+                    lifeDamage.currentTime = 0;
+                    lifeDamage.play();
+                    lifeDamage.volume = 0.2;
+                }
+                if(p.playerLifes < 1){
+                    pontosTela.innerText = "Game Over | Você fez "+pong.playerScore+" Pontos.";
+                    reiniciar.innerText = "(Espaço para jogar denovo)";
+                    terminaJogo();
+                }
+                else{
+                    pontosTela.innerText = "Pontos: "+pong.playerScore+" | Vidas: "+pong.playerLifes;
+                }
+            }else{
+                p.bolaDirY*= -1;
+            }
+        }
+        if(p.bola.y>p.barrinha1.y && p.bola.y<p.barrinha1.y+p.barrinhaHeight && p.bola.x-p.bolaRadius<p.barrinha1.x+p.barrinhaWidth){
+            p.bolaDirX = 1;
+        }
+    }
+    };
+    const limpaCor = "black";
+    const barrinhaCor = "#fff";
+    const bolaCor = "#42DDCA";
+    const canvas = document.getElementById("canvas");
+    const cw = canvas.width;
+    const ch = canvas.height;
+    var upKey = false;
+    var downKey = false;
+    const pontosTela = document.getElementById("pontos");
+    const recorde = document.getElementById("recorde");
+    const reiniciar = document.getElementById("reiniciar");
+    var ctx, pong;
+    //Audios
+    let audio = new Audio('musica.mp3');
+    let gameover = new Audio('gameover.mp3');
+    let score = new Audio('score.mp3');
+    let lifeDamage = new Audio('life.mp3');
+
+    function init(){
+        window.addEventListener("keyup",onKeyUp);
+        window.addEventListener("keydown",onKeyDown);
+        ctx = canvas.getContext("2d");
+        pong = new Pong();
+        pong.init();
+    }
+
+    function terminaJogo(){
+        if(pong.playerScore > maiorPontos){
+            maiorPontos = pong.playerScore;
+            recorde.innerText = "Sua maior pontuação foi: "+maiorPontos;
+        }
+        audio.pause();
+        gameover.currentTime = 0;
+        gameover.play();
+        gameover.volume = 0.2;
+        pong.current = false;
+        cancelAnimationFrame();
+    }
+
+    function restart(){
+        init();
+        atualiza();
+        audio.currentTime = 0;
+    }
+
+    function atualiza(){
+        limpaTela(ctx);
+        pong.atualiza(ctx);
+        console.log(pong.current);
+        if(audio.currentTime > 110 || audio.currentTime == 0){
+            audio.currentTime = 0;
+            audio.play();
+            audio.volume = 0.1;
+        }
+        requestAnimationFrame(atualiza);
+    }
+
+    function onKeyDown(e){
+        let keycode = e.keyCode;
+        //cima
+        if(keycode == 38){
+            upKey = true;
+        }
+        //baixo
+        if(keycode == 40){
+            downKey = true;
+        }
+        //espaço
+        if(keycode == 32){
+            if(pong.current == true){
+                pong.pause = !pong.pause;
+                audio.pause();
+                pontosTela.innerText = (pong.pause)?"Space To Resume":"Pontos: "+pong.playerScore+" | Vidas: "+pong.playerLifes;
+            }
+            else{
+                pontosTela.innerText = "Espaço para começar!";
+                reiniciar.innerText = "";
+                restart();
+            }
+        }
+    }
+
+    function onKeyUp(e){
+        let keycode = e.keyCode;
+        //cima
+        if(keycode == 38){
+            upKey = false;
+        }
+        //baixo
+        if(keycode == 40){
+            downKey = false;
+        }
+    }
+
+    init();
+    atualiza();
+    var maiorPontos = 0;
+    </script>
+</body>
+</html>
